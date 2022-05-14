@@ -3,4 +3,6 @@
 
  This system presents chaotic behaviour and it's popularly known as butterfly effect.
 
- The project was created for the Scientific Programming in R Language course. 
+ The project was created for the Scientific Programming in R Language course.
+
+ ![](newp.gif) 
