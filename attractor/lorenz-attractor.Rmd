@@ -1,0 +1,329 @@
+---
+title: "Lorenz Attractor"
+subtitle: "Scientific Programming Language R"
+author: 
+  - Yoná H. Huggler
+output:
+    prettydoc::html_pretty:
+    theme: paper
+    highlight: github
+runtime: shiny
+---
+
+# Contents
+
+- Edward Lorenz
+- Equations
+- Creating the program
+- Plots
+- Using *function* and different initial conditions
+- Using "plot3D" package
+- Using Shiny 
+- Package *deSolve*
+- Package *gganimate*
+- References
+
+***
+
+# Edward Lorenz
+
+
+<div style="text-align: justify">
+Edward Lorenz (1917 - 2008) was an mathematician and meteorologist who established the theoretical basis of weather and climate predictability, as well as the basis for computer-aided atmospheric physics and meteorology. In 1963, Lorenz published a paper titled ([Deterministic Nonperiodic Flow](https://journals.ametsoc.org/view/journals/atsc/20/2/1520-0469_1963_020_0130_dnf_2_0_co_2.xml)) concluding that long-term weather forecasting is impossible unless exact current conditions are known, as observations are imprecise and incomplete, accurate long-term forecasting could not exist and small errors in initial conditions would lead to catastrophic results. This phenomenon became known as the Butterfly Effect -  **"the flap of a butterfly’s wings in Brazil could set off a tornado in Texas" **.
+<div/>
+
+
+<center>
+
+![](https://www.kyotoprize.org/wp-content/uploads/2019/07/th_1991_b_lorenz.jpg){width=300px}
+
+</center>
+
+
+*** 
+
+# Equations
+
+<div style="text-align: justify">
+The model is a system of three ordinary differential equations now known as the Lorenz equations:
+
+$$
+\begin{cases}
+ & \dot{x}=\sigma(y-x) \\ 
+ & \dot{y}=rx - y - xz \\
+ & \dot{z} =xy-bz
+\end{cases}
+$$ 
+which $\sigma$, $r$ and $b$ are control parameters proportional to the Prandtl number, Rayleigh number and certain physical dimensions of the layer itself. Lorenz used the values $\sigma = 10$, $r = 28$ and $b = \frac{8}{3}$,the nonlinearity involved in the equations is quadratic due to the crossed terms, $xz$ e $xy$.
+
+This system presented a complexity in which its time series traced a shape as if it were a double spiral in three dimensions, like a butterfly with two wings, and became known as the Lorenz attractor. A set of invariant points in phase space to which nearby orbits converge after a sufficiently long time is said to be an attractor. 
+
+<div/>
+***
+
+# Creating the program 
+
+```{r atrator}
+# Lorenz map
+
+# Define the system parameters sigma, rho, and beta
+s <- 10     
+r <- 28
+b <- 8/3
+
+n <- 5000   # Iteration number
+h <- 0.01   # Step
+
+x <- vector()
+y <- vector()
+z <- vector()
+tempo <- vector() # time
+
+# Vectors can be rewritten as
+x <- y <- z <- tempo <- vector()
+
+# Initial conditions
+x[1] <- y[1] <- z[1] <- 0.1
+tempo[1] <- 0
+
+# Iterating our map
+
+for (i in 1:n) {
+     x[i+1] <- x[i]+h*(s*(y[i]-x[i]))
+     y[i+1] <- y[i]+h*(r*x[i]-y[i]-x[i]*z[i])
+     z[i+1] <- z[i]+h*(x[i]*y[i]-b*z[i])
+     tempo[i+1] <- i*h 
+}
+```
+
+# Plots 
+
+```{r plot, echo=TRUE}
+# Two-dimensional cuts of the three-dimensional phase space
+
+par(mar=c(4.2,4.2,0.2,0.2))
+
+# plot the x values vs the y values
+plot(x,y,type='l')
+
+# plot the x values vs the z values
+plot(x,z,type='l')
+
+# plot the y values vs the z values
+plot(y,z,type='l')
+
+# plot the time vs the x values
+plot(tempo,x,type='l')
+```
+
+# Using *function* and different initial conditions
+
+```{r outra-forma}
+# Another way to solve
+map <- function(x0=0.1,y0=0.1,z0=0.1){
+   s <- 10
+   r <- 28
+   b <- 8/3
+   h <- 0.01
+   
+   x <- y <- z <- tempo <- vector()
+   x[1] <- x0
+   y[1] <- y0
+   z[1] <- z0
+   tempo[1] <- 0
+  
+    for (i in 1:5000) {
+         x[i+1] <- x[i]+h*(s*(y[i]-x[i]))
+         y[i+1] <- y[i]+h*(r*x[i]-y[i]-x[i]*z[i])
+         z[i+1] <- z[i]+h*(x[i]*y[i]-b*z[i])
+         tempo[i+1] <- i*h 
+    }
+  
+    par(mar=c(4.2,4.2,0.2,0.2))
+    return(list(x=x,y=y,z=z))
+}
+
+map1 <- map(x0=0.1,y0=0.1,z0=0.1)
+plot(map1$x,map1$z,type='l',xlab="x",ylab="z")
+
+map2 <- map(x0=0.2,y0=0.2,z0=0.2)
+lines(map2$x,map2$z,type='l',col="#0066CC") 
+```
+
+
+# Using "plot3D" package
+
+```{r plot3D}
+library("plot3D")
+points3D(x,y,z,type='l')
+
+```
+
+
+# Using Shiny 
+
+```{r shinyapp}
+library(rgl)
+library(shinyWidgets)
+
+shinyApp(
+  ui <- fluidPage(
+
+    rglwidgetOutput("plot", width = 800, height = 600),
+    setBackgroundColor("white")
+  ),
+
+  server <- (function(input, output) {
+
+    output$plot <- renderRglwidget({
+    
+      rgl.open(useNULL=T)
+      plot3d(x,y,z,type='l',col='red')
+      rglwidget()
+    })
+  }),
+
+  options = list(height = 500)
+)
+```
+
+
+
+```{r}
+library(shiny)
+library(shinyWidgets)
+
+ui <- fluidPage(
+
+    titlePanel("Varying parameters!"),
+    
+    setSliderColor(c("LightSeaGreen", "DeepSkyBlue", "DarkViolet"), c(1, 2, 3)),
+
+    sidebarLayout(
+        sidebarPanel(
+            sliderInput("s",
+                        "s parameter:",
+                        min = 1,
+                        max = 10,
+                        value = 10),
+            sliderInput("r",
+                        "r parameter:",
+                        min = 1,
+                        max = 28,
+                        value = 28),
+            sliderInput("b",
+                        "b parameter:",
+                        min = 1,
+                        max = 10,
+                        value = 8/3)
+        ),
+
+        mainPanel(
+           plotOutput("distPlot")
+        )
+    ) 
+)
+
+server <- function(input, output) {
+
+    output$distPlot <- renderPlot({
+    
+        s <- input$s
+        r <- input$r
+        b <- input$b
+        n <- 5000
+        h <- 0.01
+
+        x <- y <- z <- tempo <- vector()
+        
+        # Initial conditions
+        x[1] <- y[1] <- z[1] <- 0.1
+        tempo[1] <- 0
+        
+        # Iterating our map
+        for (i in 1:n) {
+            x[i+1] <- x[i]+h*(s*(y[i]-x[i]))
+            y[i+1] <- y[i]+h*(r*x[i]-y[i]-x[i]*z[i])
+            z[i+1] <- z[i]+h*(x[i]*y[i]-b*z[i])
+            tempo[i+1] <- i*h 
+        }
+        
+         par(mar=c(4.2,4.2,0.2,0.2))
+         plot(x,z,type='l',col="#990066")
+        })
+}
+
+shinyApp(ui = ui, server = server)
+    
+```
+
+
+# Package *deSolve*
+
+```{r desolve}
+# Solving through EDOs
+
+library(deSolve)
+library(scatterplot3d)
+library(ggplot2)
+
+parameters <- c(s = 10, b = 8/3, r = 28)
+
+states <- c(x = 0.1, y = 0.1, z = 0.1)
+tempo <- seq(0, 100, by = 0.01)
+
+lorenz <- function(tempo, states, parameters) {
+  with(as.list(c(states, parameters)), {
+    xdot <- s*(y-x)
+    ydot <- x*(r-z) - y
+    zdot <- x*y - b*z
+    return(list(c(xdot, ydot, zdot)))
+  })
+}
+
+saida <- ode(y = states, times = tempo, func = lorenz, parms = parameters) # Return a table
+
+
+```
+
+<center>
+![Tabela de saida](table.png)
+</center>
+
+
+```{r}
+
+plot(saida)
+
+scatterplot3d(saida[,-1], type = "l")
+
+saida2 <- data.frame(ode(y = states, times = tempo, func = lorenz, parms = parameters))
+
+ggplot(data = saida2, mapping = aes(x = x, y = z)) + geom_point()
+
+```
+
+
+# Package *gganimate*
+
+```{r}
+# This package creates an animation
+library(gganimate)
+library(gifski) # create a gif
+
+p <- ggplot(saida2, mapping=aes(x,z)) + geom_path() + geom_point(col='red')
+
+newp <- p + transition_reveal(time)
+newp
+
+anim_save("newp.gif") # save gif
+```
+
+
+***
+# References
+
+[Deterministic Nonperiodic Flow](https://journals.ametsoc.org/view/journals/atsc/20/2/1520-0469_1963_020_0130_dnf_2_0_co_2.xml)
+
+
+[deSolve-package: General Solvers for Initial Value Problems of Ordinary Differential Equations (ODE), Partial Differential Equations (PDE), Differential Algebraic Equations (DAE) and delay differential equations (DDE).](https://www.rdocumentation.org/packages/deSolve/versions/1.28/topics/deSolve-package)
